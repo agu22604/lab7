@@ -1,0 +1,193 @@
+#include <Arduino.h>
+int ledR;
+int tiempoLed;
+
+// Pines de los LEDs (opcional si usas LEDs en el menú)
+int led1 = 12;  
+int led2 = 14;  
+int led3 = 26;
+int Pot1=25;
+char LED, tiempo;
+
+// Función para mostrar el menú en la terminal serial
+void mostrarMenu() {
+  Serial.println("\nMenu:");
+  Serial.println("1. Lectura ADC");
+  Serial.println("2. Controlar LEDs");
+  Serial.println("Por favor, selecciona una opción (1 o 2):");
+}
+
+// Función para la lectura ADC (a modo de ejemplo)
+void leerADC() {
+  int valorADC = analogRead(34);  // Leer el valor del pin ADC (34 es un pin ADC en ESP32)
+  Serial.print("Valor del ADC: ");
+  Serial.println(valorADC);
+}
+
+//LED
+
+void encenderLed(int led, int tiempo) {
+  int pin;  // Variable para almacenar el pin correspondiente
+  
+  // Seleccionamos el pin según el número de LED
+  switch (led) {
+    case 1:
+      pin = led1;
+      break;
+    case 2:
+      pin = led2;
+      break;
+    case 3:
+      pin = led3;
+      break;
+    default:
+      return;  // Salir si el LED no es válido
+  }
+
+  // Encendemos el LED
+  digitalWrite(pin, HIGH);
+  
+  // Mantenemos el LED encendido durante el tiempo especificado
+  vTaskDelay(tiempo / portTICK_PERIOD_MS);
+  
+  // Apagamos el LED
+  digitalWrite(pin, LOW);
+}
+
+// Función para controlar LEDs (a modo de ejemplo)
+void controlarLEDs() {
+ 
+}
+
+//potenciometro
+float leerVoltaje(int pin); 
+
+// Función para leer el voltaje de un potenciómetro
+float leerVoltaje(int pin) {
+    float valorAnalogico = analogRead(pin);
+    float voltaje = (valorAnalogico / 4095.0) * 5; // Suponiendo Vref = 5V y resolución de 12 bits
+    return voltaje;
+}
+
+void setup() {
+  // Inicializa la comunicación serial
+  Serial.begin(115200);
+  
+  // Configurar los pines de los LEDs como salida (opcional)
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
+  
+  // Mostrar el menú inicial
+  mostrarMenu();
+}
+
+void loop() {
+
+//potenciometro
+float voltaje1 = leerVoltaje(Pot1);
+
+//led
+ 
+  // Verificar si hay datos disponibles en la comunicación serial
+  if (Serial.available() > 0) {
+    char opcion = Serial.read();  // Leer la opción ingresada por el usuario
+    
+    switch (opcion) {
+      case '1':
+        // Opción de Lectura ADC
+        Serial.println(voltaje1);
+        break;
+
+      case '2':
+
+      case 2:  // Modo 2: Permite encender un LED durante un tiempo especificado por el usuario
+    // Instrucciones para el usuario sobre cómo ingresar los datos
+    Serial.println("Ingrese el led que desea (1,2,3) y el tiempo que desea (ms)");
+    
+    // Esperar hasta que el usuario ingrese algo en el monitor serial
+    while (Serial.available() == 0) {
+      // No hacer nada mientras no haya datos disponibles
+    }
+
+    // Leer los datos ingresados por el usuario
+    LED = Serial.readStringUntil('\n');  // Captura todo lo ingresado hasta detectar un salto de línea
+    Serial.println(datos);  // Muestra los datos ingresados para confirmar
+    comaPos = datos.indexOf(',');  // Encuentra la posición de la coma en los datos ingresados
+
+    // Si la coma fue encontrada
+    if (comaPos != -1) {
+      led = datos.substring(0, comaPos).toInt();  // Extrae el número del LED antes de la coma
+      tiempo = datos.substring(comaPos + 1).toInt();  // Extrae el tiempo en milisegundos después de la coma
+
+      // Validar los datos ingresados: el número de LED debe ser 1, 2 o 3 y el tiempo debe ser mayor a 0
+      if ((led != 1 && led != 2 && led != 3) || tiempo_ms == 0) {
+        // Si los datos no son válidos, informar al usuario
+        Serial.println("Entrada inválida. Por favor, intente nuevamente.");
+        delay(1000);
+        tiempo = 2;  
+      } else {
+        // Si los datos son válidos, encender el LED especificado por el tiempo indicado
+        encenderLed(led, tiempo_ms);  // Llama a la función que controla el LED
+       tiempo  = 0;  // Regresa al modo 0 (inicial) tras ejecutar la acción
+      }
+    } else {
+      // Si no se ingresó la coma o el formato es incorrecto
+      Serial.println("Formato incorrecto. Asegúrese de ingresar los datos en el formato correcto.");
+      tiempo = 2;  // Volver a modo 2 para pedir los datos de nuevo
+      delay(1000);
+    }
+    break;
+
+
+      // Esperar a que el usuario ingrese un LED
+      while (Serial.available() == 0) {}  // Esperar entrada
+      LED =  Serial.readStringUntil('\n');  // Convertir el carácter a número
+
+      // Validar si LED es válido
+      if (LED < 1 || LED > 3) {
+          Serial.println("Opción de LED inválida. Intenta nuevamente.");
+          break; // Sale del case para volver a mostrar el menú
+      }
+
+      Serial.println("¿Cuánto tiempo quieres encenderlo (ms)?");
+
+      // Esperar a que el usuario ingrese el tiempo
+      while (Serial.available() == 0) {}  // Esperar entrada
+      tiempo = Serial.parseInt();  // Lee el tiempo como entero
+
+      // Limpiar el buffer de entrada
+      while (Serial.available() > 0) {
+          Serial.read();  // Limpiar cualquier carácter restante
+      }
+
+      // Validar que el tiempo sea positivo
+      if (tiempo <= 0) {
+          Serial.println("Tiempo inválido. Debe ser mayor que 0. Intenta nuevamente.");
+          break; // Sale del case para volver a mostrar el menú
+      }
+
+      // Imprimir valores leídos para depuración
+      Serial.print("LED seleccionado: ");
+      Serial.println(LED);
+      Serial.print("Tiempo seleccionado: ");
+      Serial.println(tiempo);
+
+      // Controlar el LED
+      Serial.println("Controlando LEDs...");
+      encenderLed(LED, tiempo);  
+      vTaskDelay(2000 / portTICK_PERIOD_MS); 
+      Serial.println("LEDs controlados.");
+      break;
+
+
+     default:
+        // Opción inválida
+        Serial.println("Opción inválida. Intenta nuevamente.");
+        break;
+    }
+
+    // Volver a mostrar el menú después de cada selección
+    mostrarMenu();
+  }
+}
